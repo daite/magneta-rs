@@ -1,3 +1,4 @@
+![build](https://github.com/daite/magneta/workflows/Rust/badge.svg)
 # Magneta
 
 A fast, extensible CLI tool for searching torrents across multiple torrent sites.
