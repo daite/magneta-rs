@@ -49,18 +49,25 @@ cargo test
 
 ```text
 magneta/
-├── src/                 # Main source code
-│   ├── main.rs          # CLI entry point
-│   ├── lib.rs           # Core library
-│   └── sites/           # Pluggable site parsers (e.g., torrenttop.rs)
-├── tests/               # Offline tests using HTML samples
-│   └── torrenttop_test.rs
-├── .github/workflows/   # GitHub Actions CI workflows
-├── Makefile             # Automation commands (build, test, run, lint, etc.)
-├── Cargo.toml           # Rust project manifest
-└── README.md            # Project documentation
+.
+├── Cargo.lock
+├── Cargo.toml
+├── LICENSE
+├── Makefile
+├── README.md
+├── src
+│   ├── lib.rs
+│   ├── main.rs
+│   └── sites
+│       ├── mod.rs
+│       └── torrenttop.rs
+└── tests
+    ├── data
+    │   └── torrenttop
+    │       ├── magnet_sample.html
+    │       └── search_sample.html
+    └── torrenttop_test.rs
 ```
-
 ## Testing
 
 This project uses **offline HTML samples** for testing:
