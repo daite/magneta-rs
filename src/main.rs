@@ -1,10 +1,14 @@
 use clap::{Parser, Subcommand};
 use prettytable::{Table, format, row};
-use magneta::TorrentSite;
-use magneta::sites::TorrentTop;
 use indicatif::{ProgressBar, ProgressStyle};
 use std::time::Duration;
+use config::Config;
+use std::env;
+use std::path::PathBuf;
 
+mod site_registry;
+
+/// CLI argument parsing
 #[derive(Parser)]
 #[command(name = "magneta")]
 #[command(version = "0.1.0")]
@@ -23,16 +27,32 @@ enum Commands {
     },
 }
 
+/// Load configuration from config.toml located next to the binary
+fn get_config() -> anyhow::Result<Config> {
+    let exe_path = env::current_exe()?;
+    let exe_dir = exe_path.parent()
+        .map(|p| p.to_path_buf())  
+        .unwrap_or_else(|| PathBuf::from(".")); 
+
+    let config_path = exe_dir.join("config.toml");
+
+    Config::builder()
+        .add_source(config::File::from(config_path))
+        .build()
+        .map_err(Into::into)
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
+    // Load configuration
+    let settings = get_config()?;
+
     match &cli.command {
         Commands::Search { keyword } => {
-            let sites: Vec<Box<dyn TorrentSite>> = vec![
-                Box::new(TorrentTop),
-                // Add more sites here
-            ];
+            // Create sites based on config
+            let sites = site_registry::create_sites(&settings);
 
             // Create a spinner
             let pb = ProgressBar::new_spinner();
@@ -73,5 +93,6 @@ async fn main() -> anyhow::Result<()> {
             table.printstd();
         }
     }
+
     Ok(())
 }
