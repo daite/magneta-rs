@@ -1,0 +1,2 @@
+# Treat HTML test samples as generated and exclude from language stats
+tests/data/**/*.html linguist-generated=true
