@@ -1,7 +1,7 @@
 use clap::{Parser, Subcommand};
-use magneta::{TorrentSite, TorrentResult};
+use magneta::TorrentSite;
 use magneta::sites::TorrentTop;
-use prettytable::{Table, row, cell};
+use prettytable::{Table, row, format};
 
 /// Magneta - Multi-site torrent search CLI
 #[derive(Parser)]
@@ -25,24 +25,41 @@ enum Commands {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
+
     match &cli.command {
         Commands::Search { keyword } => {
             let sites: Vec<Box<dyn TorrentSite>> = vec![
                 Box::new(TorrentTop),
                 // add more sites here
             ];
+            
             let mut results = Vec::new();
             for site in sites {
                 let mut res = site.search(keyword).await?;
                 results.append(&mut res);
             }
-            let mut table = Table::new();
-            table.add_row(row!["TITLE", "MAGNET"]);
-            for r in results {
-                table.add_row(row![r.title, r.magnet]);
+
+            if results.is_empty() {
+                println!("No results found for keyword: {}", keyword);
+                return Ok(());
             }
+
+            // Create table
+            let mut table = Table::new();
+            table.set_titles(row!["Title", "Magnet"]);
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+
+            // Only add non-empty title/magnet rows
+            for r in results {
+                if !r.title.trim().is_empty() && !r.magnet.trim().is_empty() {
+                    table.add_row(row![r.title, r.magnet]);
+                }
+            }
+
+            // Print table
             table.printstd();
         }
     }
+
     Ok(())
 }
