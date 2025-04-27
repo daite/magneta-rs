@@ -1,13 +1,14 @@
 use clap::{Parser, Subcommand};
+use prettytable::{Table, format, row};
 use magneta::TorrentSite;
 use magneta::sites::TorrentTop;
-use prettytable::{Table, row, format};
+use indicatif::{ProgressBar, ProgressStyle};
+use std::time::Duration;
 
-/// Magneta - Multi-site torrent search CLI
 #[derive(Parser)]
 #[command(name = "magneta")]
 #[command(version = "0.1.0")]
-#[command(about = "CLI tool to search torrents from multiple sites", long_about = None)]
+#[command(about = "Multi-site torrent search CLI", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -30,33 +31,45 @@ async fn main() -> anyhow::Result<()> {
         Commands::Search { keyword } => {
             let sites: Vec<Box<dyn TorrentSite>> = vec![
                 Box::new(TorrentTop),
-                // add more sites here
+                // Add more sites here
             ];
-            
+
+            // Create a spinner
+            let pb = ProgressBar::new_spinner();
+            pb.set_style(
+                ProgressStyle::default_spinner()
+                    .template("{spinner:.green} {msg}")
+                    .unwrap()
+                    .tick_strings(&[
+                        "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
+                    ])
+            );
+            pb.enable_steady_tick(Duration::from_millis(100));
+            pb.set_message(format!("Searching {} torrents...", keyword));
+
             let mut results = Vec::new();
             for site in sites {
                 let mut res = site.search(keyword).await?;
                 results.append(&mut res);
             }
 
+            pb.finish_with_message("✅ Search completed!");
+
             if results.is_empty() {
                 println!("No results found for keyword: {}", keyword);
                 return Ok(());
             }
 
-            // Create table
             let mut table = Table::new();
             table.set_titles(row!["Title", "Magnet"]);
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
 
-            // Only add non-empty title/magnet rows
             for r in results {
                 if !r.title.trim().is_empty() && !r.magnet.trim().is_empty() {
                     table.add_row(row![r.title, r.magnet]);
                 }
             }
 
-            // Print table
             table.printstd();
         }
     }
