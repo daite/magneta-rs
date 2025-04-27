@@ -1,2 +1,18 @@
-# Treat HTML test samples as generated and exclude from language stats
+# Exclude test sample files from linguist language stats
 tests/data/**/*.html linguist-generated=true
+tests/data/**/*.txt linguist-generated=true
+tests/data/**/*.csv linguist-generated=true
+tests/data/**/*.json linguist-generated=true
+
+# Exclude assets (if any)
+assets/**/*.html linguist-generated=true
+
+# Exclude Markdown files
+*.md linguist-generated=true
+
+# Exclude GitHub Actions workflows
+.github/**/*.yml linguist-generated=true
+.github/**/*.yaml linguist-generated=true
+
+# Exclude Makefile from language statistics
+Makefile linguist-generated=true
