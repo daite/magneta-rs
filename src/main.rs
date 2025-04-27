@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
                     ])
             );
             pb.enable_steady_tick(Duration::from_millis(100));
-            pb.set_message(format!("Searching {} torrents...", keyword));
+            pb.set_message("Searching torrents...");
 
             let mut results = Vec::new();
             for site in sites {
@@ -73,6 +73,5 @@ async fn main() -> anyhow::Result<()> {
             table.printstd();
         }
     }
-
     Ok(())
 }
