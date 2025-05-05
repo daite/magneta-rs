@@ -23,6 +23,7 @@ help:
 	@echo "  make clean                - Clean the build artifacts (cargo clean)"
 	@echo "  make update               - Update Cargo dependencies"
 	@echo "  make run [ARGS=...]       - Build and run the binary with optional arguments"
+	@echo "  make doctor               - Run site diagnostics (cargo run -- doctor)"
 	@echo ""
 
 # Build the project
@@ -58,6 +59,10 @@ test:
 run: build
 	@echo "Running binary: $(BINARY) $(filter-out $@,$(MAKECMDGOALS))"
 	$(BINARY) $(filter-out $@,$(MAKECMDGOALS))
+
+# Run site diagnostics
+doctor:
+	cargo run -- doctor
 
 # Format the code
 fmt:
