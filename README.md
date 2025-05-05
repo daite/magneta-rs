@@ -3,6 +3,11 @@
 
 A fast, extensible CLI tool for searching torrents across multiple torrent sites with failover support and pluggable site parsers.
 
+## Background
+
+> Korean torrent sites are often filled with aggressive advertisements, popups, and scripts.  
+> Searching for a single show can take many minutes and multiple clicks.  
+
 ## Features
 
 - 🔍 Search torrents by keyword
