@@ -1,5 +1,5 @@
-pub mod sites;
 pub mod macros;
+pub mod sites;
 
 pub struct TorrentResult {
     pub title: String,

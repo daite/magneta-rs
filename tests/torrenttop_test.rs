@@ -1,5 +1,5 @@
-use magneta::sites::TorrentTop;
 use magneta::site_test;
+use magneta::sites::TorrentTop;
 use scraper::Html;
 
 site_test!("torrenttop", test_parse_search_document, {

@@ -1,10 +1,13 @@
 use clap::{Parser, Subcommand};
-use prettytable::{Table, format, row};
+use config::{Config, Value};
 use indicatif::{ProgressBar, ProgressStyle};
-use std::time::Duration;
-use config::Config;
+use log::warn;
+use prettytable::{format, row, Table};
+use reqwest;
+use std::collections::HashMap;
 use std::env;
 use std::path::PathBuf;
+use std::time::Duration;
 
 mod site_registry;
 
@@ -25,14 +28,17 @@ enum Commands {
         /// The keyword to search for
         keyword: String,
     },
+    /// Run diagnostics on torrent sites
+    Doctor,
 }
 
 /// Load configuration from config.toml located next to the binary
 fn get_config() -> anyhow::Result<Config> {
     let exe_path = env::current_exe()?;
-    let exe_dir = exe_path.parent()
-        .map(|p| p.to_path_buf())  
-        .unwrap_or_else(|| PathBuf::from(".")); 
+    let exe_dir = exe_path
+        .parent()
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::from("."));
 
     let config_path = exe_dir.join("config.toml");
 
@@ -44,6 +50,8 @@ fn get_config() -> anyhow::Result<Config> {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
+    env_logger::init();
+
     let cli = Cli::parse();
 
     // Load configuration
@@ -51,26 +59,52 @@ async fn main() -> anyhow::Result<()> {
 
     match &cli.command {
         Commands::Search { keyword } => {
-            // Create sites based on config
             let sites = site_registry::create_sites(&settings);
 
-            // Create a spinner
             let pb = ProgressBar::new_spinner();
             pb.set_style(
                 ProgressStyle::default_spinner()
                     .template("{spinner:.green} {msg}")
                     .unwrap()
-                    .tick_strings(&[
-                        "⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"
-                    ])
+                    .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
             );
             pb.enable_steady_tick(Duration::from_millis(100));
             pb.set_message("Searching torrents...");
 
             let mut results = Vec::new();
-            for site in sites {
-                let mut res = site.search(keyword).await?;
-                results.append(&mut res);
+            for (site_name, site) in sites {
+                match site.search(keyword).await {
+                    Ok(r) if !r.is_empty() => {
+                        results = r;
+                        break;
+                    }
+                    Ok(_) => continue,
+                    Err(e) => {
+                        let message = if let Some(reqwest_err) = e.downcast_ref::<reqwest::Error>()
+                        {
+                            if reqwest_err.is_connect() {
+                                "❌ connection failed".to_string()
+                            } else if reqwest_err.is_timeout() {
+                                "⏱️ timeout".to_string()
+                            } else {
+                                let s = reqwest_err.to_string();
+                                s.split(':')
+                                    .next()
+                                    .unwrap_or("❌ unknown error")
+                                    .to_string()
+                            }
+                        } else {
+                            let s = e.to_string();
+                            s.split(':')
+                                .next()
+                                .unwrap_or("❌ unknown error")
+                                .to_string()
+                        };
+
+                        warn!("Error searching site '{}': {}", site_name, message);
+                        continue;
+                    }
+                }
             }
 
             pb.finish_with_message("✅ Search completed!");
@@ -87,6 +121,58 @@ async fn main() -> anyhow::Result<()> {
             for r in results {
                 if !r.title.trim().is_empty() && !r.magnet.trim().is_empty() {
                     table.add_row(row![r.title, r.magnet]);
+                }
+            }
+
+            table.printstd();
+        }
+        Commands::Doctor => {
+            println!("🔍 Running diagnostics for torrent sites:");
+
+            let config_map: HashMap<String, Value> = settings.try_deserialize()?;
+            let mut table = Table::new();
+            table.set_titles(row!["Site Name", "Site URL", "Status"]);
+            table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
+
+            let client = reqwest::Client::new();
+            let user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; xhtml,application/xml;q=0.9,image/webp,*/*;q=0.8)";
+
+            for (site_name, site_config) in config_map {
+                if let Some(table_val) = site_config.into_table().ok() {
+                    if let Some(url) = table_val
+                        .get("base_url")
+                        .and_then(|v| v.clone().into_string().ok())
+                    {
+                        let status = match client
+                            .get(&url)
+                            .header("User-Agent", user_agent)
+                            .send()
+                            .await
+                        {
+                            Ok(resp) if resp.status().is_success() => {
+                                format!("✅ {}", resp.status())
+                            }
+                            Ok(resp) => format!("⚠️ {}", resp.status()),
+                            Err(err) => {
+                                if err.is_connect() {
+                                    "❌ connection failed".to_string()
+                                } else if err.is_timeout() {
+                                    "⏱️ timeout".to_string()
+                                } else {
+                                    format!(
+                                        "❌ {}",
+                                        err.to_string()
+                                            .split(':')
+                                            .next()
+                                            .unwrap_or("unknown error")
+                                    )
+                                }
+                            }
+                        };
+                        table.add_row(row![site_name, url, status]);
+                    } else {
+                        table.add_row(row![site_name, "no base_url", "❌ Invalid"]);
+                    }
                 }
             }
 

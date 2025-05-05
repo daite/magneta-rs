@@ -4,31 +4,26 @@ use reqwest::Client;
 use scraper::{Html, Selector};
 use tokio::task::spawn_blocking;
 
-/// TorrentTop struct holds base_url
-pub struct TorrentTop {
+/// TorrentRJ struct holds base_url
+pub struct TorrentRJ {
     pub base_url: String,
 }
 
-impl TorrentTop {
-    /// Create a new instance of TorrentTop with given base_url
+impl TorrentRJ {
     pub fn new(base_url: String) -> Self {
         Self { base_url }
     }
 
-    /// Parse the HTML document and extract (title, href) links
+    /// Parse the search results page and extract (title, href)
     pub fn parse_search_document(document: &Html) -> Vec<(String, String)> {
-        let a_selector = Selector::parse("div.flex-auto.px-2.truncate a").unwrap();
+        let li_selector = Selector::parse("li.topic-item a[title]").unwrap();
 
         document
-            .select(&a_selector)
+            .select(&li_selector)
             .filter_map(|a_tag| {
                 let href = a_tag.value().attr("href")?;
-                if href.starts_with("/torrent/") {
-                    let title = a_tag.value().attr("title").unwrap_or("").to_string();
-                    Some((title, href.to_string()))
-                } else {
-                    None
-                }
+                let title = a_tag.value().attr("title").unwrap_or("").to_string();
+                Some((title, href.to_string()))
             })
             .collect()
     }
@@ -46,7 +41,7 @@ impl TorrentTop {
 }
 
 #[async_trait::async_trait]
-impl TorrentSite for TorrentTop {
+impl TorrentSite for TorrentRJ {
     async fn search(&self, keyword: &str) -> anyhow::Result<Vec<TorrentResult>> {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; xhtml,application/xml;q=0.9,image/webp,*/*;q=0.8")
