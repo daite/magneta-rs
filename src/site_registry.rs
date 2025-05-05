@@ -1,5 +1,5 @@
 use config::Config;
-use magneta::sites::{TorrentSome, TorrentTop, TorrentRJ};
+use magneta::sites::{TorrentRJ, TorrentSome, TorrentTop};
 use magneta::TorrentSite;
 
 pub fn create_sites(config: &Config) -> Vec<(String, Box<dyn TorrentSite>)> {
@@ -13,10 +13,7 @@ pub fn create_sites(config: &Config) -> Vec<(String, Box<dyn TorrentSite>)> {
     }
 
     if let Ok(base_url) = config.get_string("torrentrj.base_url") {
-        sites.push((
-            "torrentrj".to_string(),
-            Box::new(TorrentRJ::new(base_url)),
-        ));
+        sites.push(("torrentrj".to_string(), Box::new(TorrentRJ::new(base_url))));
     }
 
     if let Ok(base_url) = config.get_string("torrentsome.base_url") {

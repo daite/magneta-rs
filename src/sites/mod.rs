@@ -1,7 +1,7 @@
+pub mod torrentrj;
 pub mod torrentsome;
 pub mod torrenttop;
-pub mod torrentrj;
 
+pub use torrentrj::TorrentRJ;
 pub use torrentsome::TorrentSome;
 pub use torrenttop::TorrentTop;
-pub use torrentrj::TorrentRJ;

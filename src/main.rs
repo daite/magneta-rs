@@ -127,9 +127,18 @@ async fn main() -> anyhow::Result<()> {
             table.printstd();
         }
         Commands::Doctor => {
-            println!("🔍 Running diagnostics for torrent sites:");
-
             let config_map: HashMap<String, Value> = settings.try_deserialize()?;
+
+            let pb = ProgressBar::new_spinner();
+            pb.set_style(
+                ProgressStyle::default_spinner()
+                    .template("{spinner:.green} {msg}")
+                    .unwrap()
+                    .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
+            );
+            pb.enable_steady_tick(Duration::from_millis(100));
+            pb.set_message("Checking Up/Down for torrent sites...");
+
             let mut table = Table::new();
             table.set_titles(row!["Site Name", "Site URL", "Status"]);
             table.set_format(*format::consts::FORMAT_NO_LINESEP_WITH_TITLE);
@@ -176,6 +185,7 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
 
+            pb.finish_with_message("✅ Diagnostics completed!");
             table.printstd();
         }
     }
