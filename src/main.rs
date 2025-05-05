@@ -137,7 +137,7 @@ async fn main() -> anyhow::Result<()> {
                     .tick_strings(&["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]),
             );
             pb.enable_steady_tick(Duration::from_millis(100));
-            pb.set_message("Checking Up/Down for torrent sites...");
+            pb.set_message("Running diagnostics for torrent sites...");
 
             let mut table = Table::new();
             table.set_titles(row!["Site Name", "Site URL", "Status"]);
